@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mini ChatGPT — No Token, No Model</title>
+
+    <style>
+        body { background:#0c0c0c; color:white; font-family:Arial; text-align:center; padding:20px; }
+        #box { width:90%; margin:auto; }
+        input {
+            width:80%; padding:12px; border-radius:8px;
+            margin-top:10px; border:none;
+        }
+        button {
+            background:#00aaff; color:#fff;
+            padding:12px 20px; margin-top:10px;
+            border-radius:8px; border:none;
+            cursor:pointer; font-size:16px;
+        }
+        #answer {
+            background:#111; padding:15px; margin-top:20px;
+            border-radius:10px; white-space:pre-wrap; text-align:left;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>🔥 Mini ChatGPT — Auto Knowledge + Memory</h2>
+
+<div id="box">
+    <input id="q" placeholder="Ask anything..." />
+    <button onclick="ask()">Ask</button>
+    <div id="answer"></div>
+</div>
+
+<script>
+// -------- Memory System (localStorage) --------
+function loadMemory() {
+    return JSON.parse(localStorage.getItem("mini_ai_memory")) || { 
+        conversation: [],
+        knowledge: []
+    };
+}
+
+function saveMemory(mem) {
+    localStorage.setItem("mini_ai_memory", JSON.stringify(mem));
+}
+
+// -------- Auto Knowledge Collector --------
+async function autoKnowledge(memory) {
+
+    // Wikipedia summary
+    let wiki = await fetch("https://en.wikipedia.org/api/rest_v1/page/random/summary")
+        .then(r=>r.json()).catch(()=>null);
+
+    if (wiki) {
+        memory.knowledge.push({
+            title: wiki.title,
+            desc: wiki.extract,
+            time: Date.now()
+        });
+    }
+
+    return memory;
+}
+
+// -------- Free Tiny AI Logic (RULE-BASED + MEMORY) --------
+function tinyAI(prompt, memory) {
+    let lastWiki = memory.knowledge[memory.knowledge.length - 1];
+
+    return `
+I am Mini ChatGPT (Browser AI).
+I learn automatically using Wikipedia.
+
+Latest Knowledge:
+${lastWiki ? lastWiki.title + " - " + lastWiki.desc : "No knowledge yet"}
+
+Your Question:
+${prompt}
+
+Answer:
+Based on my memory and Wikipedia knowledge, here is what I think:
+- ${prompt} is related to: ${prompt.split(" ")[0]}
+- I have learned ${memory.knowledge.length} new things recently.
+- Here is a helpful explanation:
+
+${lastWiki ? lastWiki.desc : "I will learn more soon."}
+    `;
+}
+
+// -------- Main ASK Function --------
+async function ask() {
+    let q = document.getElementById("q").value;
+    let ansBox = document.getElementById("answer");
+
+    ansBox.innerText = "Thinking...";
+
+    let memory = loadMemory();
+    memory = await autoKnowledge(memory);
+
+    let answer = tinyAI(q, memory);
+    ansBox.innerText = answer;
+
+    memory.conversation.push({ q:q, a:answer });
+    saveMemory(memory);
+}
+</script>
+
+</body>
+</html>
