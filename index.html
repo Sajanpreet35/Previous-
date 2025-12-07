@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Super Mini ChatGPT — Tokenless AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers"></script>
+
+    <style>
+        body { background:#0c0c0c; color:white; font-family:Arial; text-align:center; }
+        #box { width:90%; margin:auto; }
+        input {
+            width:80%; padding:12px; border-radius:8px;
+            margin-top:10px; border:none;
+        }
+        button {
+            background:#00aaff; color:#fff;
+            padding:12px 20px; margin-top:10px;
+            border-radius:8px; border:none;
+            cursor:pointer; font-size:16px;
+        }
+        #answer {
+            background:#111; padding:15px; margin-top:20px;
+            border-radius:10px; white-space:pre-wrap; text-align:left;
+        }
+    </style>
+</head>
+
+<body>
+<h1>🔥 Super Mini ChatGPT — Auto Learning + Unlimited Memory</h1>
+
+<div id="box">
+    <input id="q" placeholder="Ask anything..." />
+    <button onclick="ask()">Ask</button>
+
+    <div id="answer"></div>
+</div>
+
+<script>
+// ------------------ MEMORY SYSTEM (No Token) ------------------
+function loadMemory() {
+    return JSON.parse(localStorage.getItem("ai_memory")) || {
+        conversation: [],
+        knowledge: []
+    };
+}
+
+function saveMemory(memory) {
+    localStorage.setItem("ai_memory", JSON.stringify(memory));
+}
+
+// ------------------ AUTO KNOWLEDGE COLLECTOR ------------------
+async function autoKnowledge(memory) {
+
+    // Wikipedia random article
+    let wiki = await fetch("https://en.wikipedia.org/api/rest_v1/page/random/summary")
+        .then(r => r.json()).catch(()=>null);
+
+    if (wiki) {
+        memory.knowledge.push({
+            type: "wiki",
+            title: wiki.title,
+            desc: wiki.extract,
+            time: Date.now()
+        });
+    }
+
+    // Public API data (like news)
+    let news = await fetch("https://api.publicapis.org/entries")
+        .then(r=>r.json()).catch(()=>null);
+
+    if (news) {
+        memory.knowledge.push({
+            type: "news",
+            list: news.entries.slice(0,5),
+            time: Date.now()
+        });
+    }
+
+    return memory;
+}
+
+// ------------------ LOCAL MINI LLM ------------------
+let generatorLoaded = false;
+let pipe;
+
+async function loadModel() {
+    if (!generatorLoaded) {
+        pipe = await window.transformers.pipeline(
+            "text-generation",
+            "Xenova/phi-2"
+        );
+        generatorLoaded = true;
+    }
+}
+
+// ------------------ ASK FUNCTION ------------------
+async function ask() {
+
+    await loadModel();
+
+    let q = document.getElementById("q").value;
+    let answerBox = document.getElementById("answer");
+    answerBox.innerText = "Thinking...";
+
+    let memory = loadMemory();
+    memory = await autoKnowledge(memory);
+
+    // PROMPT BUILDING
+    let prompt = `
+You are Super Mini ChatGPT.
+
+Capabilities:
+- Deep reasoning
+- Unlimited memory using localStorage
+- Auto Wikipedia knowledge
+- Auto News collector
+- Self learning AI
+
+MEMORY:
+${JSON.stringify(memory).slice(0,5000)}
+
+User: ${q}
+AI:
+    `;
+
+    // USE LOCAL MODEL
+    const out = await pipe(prompt, { max_length: 200 });
+    let answer = out[0].generated_text;
+
+    answerBox.innerText = answer;
+
+    memory.conversation.push({ q:q, a:answer });
+    saveMemory(memory);
+}
+
+</script>
+</body>
+</html>
