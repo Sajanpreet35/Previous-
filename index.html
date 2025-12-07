@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Super Deep AI</title>
+    <style>
+        body {background:black;color:white;font-family:Arial;text-align:center;padding:20px;}
+        #ans {background:#111;margin-top:20px;padding:15px;border-radius:10px;white-space:pre-wrap;}
+        input {width:80%;padding:10px;border-radius:5px;border:none;margin-top:10px;}
+        button {padding:10px 20px;margin-top:10px;border-radius:5px;border:none;background:#00aaff;color:white;cursor:pointer;}
+    </style>
+</head>
+<body>
+<h1>🔥 Super Deep AI</h1>
+
+<input id="q" placeholder="Ask anything..." />
+<button onclick="ask()">Ask</button>
+
+<div id="ans">Your AI response will appear here...</div>
+
+<script>
+async function ask(){
+    const q = document.getElementById("q").value;
+    document.getElementById("ans").innerText = "Thinking...";
+
+    // Worker API URL
+    const api = "https://sajan.darmindark691.workers.dev/?q=" + encodeURIComponent(q);
+
+    try {
+        const res = await fetch(api);
+        const text = await res.text();
+        document.getElementById("ans").innerText = text;
+    } catch(e) {
+        document.getElementById("ans").innerText = "Error connecting to AI: " + e;
+    }
+}
+</script>
+</body>
+</html>
